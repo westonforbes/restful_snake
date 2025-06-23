@@ -1,9 +1,13 @@
 import psycopg2
 import os
+from fastapi import FastAPI, Request, HTTPException
+from pydantic import BaseModel
+from typing import Dict
+import uvicorn
 from wf_console import Console as console
 DEBUG = True
 
-# Define connectionection parameters using environment variables from the venv.
+# Define connection parameters using environment variables from the venv.
 connection_params = {
     'dbname': 'postgres',
     'user': os.getenv('USERNAME'),
@@ -74,4 +78,32 @@ def insert_data(connection_parameters: dict, table: str, temperature_f: float, h
             connection.close()
             if DEBUG: console.fancy_print(f"<GOOD>connection closed.</GOOD>")
 
-insert_data(connection_params,"environmental_sensor_data", 75.5, 60.0, 80.0)
+
+
+app = FastAPI()
+
+# Define the expected post schema.
+class DataPayload(BaseModel):
+
+    name: str
+    temperature_f: float
+    humidity_percentage: float
+    heat_index_f: float
+
+
+@app.post("/data")
+async def receive_data(payload: DataPayload):
+    # Access individual keys: payload.key1, payload.key2, etc.
+    print("received data:", payload.model_dump())
+
+    insert_data(connection_params,payload.name, payload.temperature_f, payload.humidity_percentage, payload.heat_index_f)
+
+    return {"status": "success", "received": payload.model_dump()}
+
+# Sample successful POST request:
+# curl -X POST http://sql-server:8000/data -H "Content-Type: application/json" -d '{"name": "environmental_sensor_data", "temperature_f": 72.5, "humidity_percentage": 45.0,"heat_index_f": 75.0}'
+
+# Run with: uvicorn main:app --host 0.0.0.0 --port 8000 --reload
+if __name__ == "__main__":
+    uvicorn.run("main:app", host="0.0.0.0", port=8000, reload=True)
+    
