@@ -9,7 +9,7 @@ DEBUG = True
 
 # Define connection parameters using environment variables from the venv.
 connection_params = {
-    'dbname': 'postgres',
+    'dbname': 'environmental_sensors',
     'user': os.getenv('USERNAME'),
     'password': os.getenv('PASSWORD'),
     'host': 'localhost',
@@ -92,7 +92,7 @@ class DataPayload(BaseModel):
     temperature_f_offset: float
     humidity_percentage_offset: float
 
-@app.post("/data")
+@app.post("/heat_index_data")
 async def receive_data(payload: DataPayload):
     # Access individual keys: payload.key1, payload.key2, etc.
     print("received data:", payload.model_dump())
