@@ -18,7 +18,7 @@ connection_params = {
 
 console.clear()
 
-def insert_data(connection_parameters: dict, table: str, temperature_f: float, humidity_percentage: float, heat_index: float) -> None:
+def insert_data(connection_parameters: dict, table: str, temperature_f: float, temperature_f_offset: float, humidity_percentage: float, humidity_percentage_offset: float, heat_index: float) -> None:
 
     # Check that the user and password is set.
     if DEBUG: console.fancy_print(f"<INFO>checking environment variables...</INFO>")
@@ -50,14 +50,14 @@ def insert_data(connection_parameters: dict, table: str, temperature_f: float, h
         # Insert query.
         if DEBUG: console.fancy_print(f"<INFO>preparing insert query...</INFO>")
         insert_query = f"""
-            INSERT INTO {table} (temperature_f, humidity_percentage, heat_index_f)
-            VALUES (%s, %s, %s)
+            INSERT INTO {table} (temperature_f, temperature_f_offset, humidity_percentage, humidity_percentage_offset, heat_index_f)
+            VALUES (%s, %s, %s, %s, %s)
         """
         if DEBUG: console.fancy_print(f"<GOOD>insert query prepared.</GOOD>")
 
         # Execute insert command.
         if DEBUG: console.fancy_print(f"<INFO>executing insert command...</INFO>")
-        cursor.execute(insert_query, (temperature_f, humidity_percentage, heat_index))
+        cursor.execute(insert_query, (temperature_f, temperature_f_offset, humidity_percentage, humidity_percentage_offset, heat_index))
         if DEBUG: console.fancy_print(f"<GOOD>insert command executed.</GOOD>")
 
         # Commit the transaction.
@@ -66,7 +66,7 @@ def insert_data(connection_parameters: dict, table: str, temperature_f: float, h
         if DEBUG: console.fancy_print(f"<GOOD>transaction committed.</GOOD>")
 
     except Exception as e:
-        if DEBUG: console.fancy_print(f"<BAD>error inserting data: {e}</BAD>")
+        if DEBUG: console.fancy_print(f"<BAD>error inserting data: {e}</BAD>")  
 
     finally:
         if cursor:
@@ -89,19 +89,20 @@ class DataPayload(BaseModel):
     temperature_f: float
     humidity_percentage: float
     heat_index_f: float
-
+    temperature_f_offset: float
+    humidity_percentage_offset: float
 
 @app.post("/data")
 async def receive_data(payload: DataPayload):
     # Access individual keys: payload.key1, payload.key2, etc.
     print("received data:", payload.model_dump())
 
-    insert_data(connection_params,payload.name, payload.temperature_f, payload.humidity_percentage, payload.heat_index_f)
+    insert_data(connection_params,payload.name, payload.temperature_f, payload.temperature_f_offset, payload.humidity_percentage, payload.humidity_percentage_offset, payload.heat_index_f)
 
     return {"status": "success", "received": payload.model_dump()}
 
 # Sample successful POST request:
-# curl -X POST http://sql-server:8000/data -H "Content-Type: application/json" -d '{"name": "environmental_sensor_data", "temperature_f": 72.5, "humidity_percentage": 45.0,"heat_index_f": 75.0}'
+# curl -X POST http://www.forbes-server.com:8000/data -H "Content-Type: application/json" -d '{"name": "environmental_sensor_data", "temperature_f": 72.5, "temperature_f_offset": 0.0, "humidity_percentage": 45.0, "humidity_percentage_offset": 0.0,"heat_index_f": 75.0}'
 
 # Run with: uvicorn main:app --host 0.0.0.0 --port 8000 --reload
 if __name__ == "__main__":
